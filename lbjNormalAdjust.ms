@@ -315,7 +315,7 @@ toolTip:"NormalsAdjust"
 		max modify mode
 		
 	)
-
+	
 		---------------------------------------------------------------projectNormalOffset
 	fn projectNormalOffset sObj inpos applyMode range =
 	(	
@@ -442,8 +442,66 @@ toolTip:"NormalsAdjust"
 		max modify mode
 		
 	)
-
 	
+		---------------------------------------------------------------projectNormalReset
+		fn projectNormalReset sObj  range =
+	(
+		max modify mode
+		
+		--set source	
+		select sObj	
+		
+		----set normal modifier on source object	
+		msNormals = Edit_Normals ()
+		msNormals.displayLength = 8
+		addmodifier sObj msNormals
+		
+		s_NumNorm = msNormals.GetNumNormals()
+		msNormals.SetSelection #{1..s_NumNorm}
+		msNormals.Unify()
+		msNormals.MakeExplicit()
+		--cache functions
+		s_Convert = msNormals.ConvertVertexSelection 
+		s_NumVert = msNormals.GetNumVertices()
+		s_Setnormal = msNormals.Setnormal 
+		s_GetNormal = msNormals.Getnormal 
+		s_GetVert = msNormals.GetVertex
+		
+		----get all source object vertex coordinates
+		sv = for i in sObj.selectedVerts collect i.index
+		
+		--set normals on source obj
+		select sObj
+		disableRefMsgs()
+		
+		if range == "all" then
+		(
+			for i =1 to s_NumVert do 
+			(
+				s_normalIDArray = #{}
+				s_Convert #{i} s_normalIDArray
+				msNormals.Reset selection:s_normalIDArray
+			)
+		)
+		else if range == "selected" then
+		(
+			for i in sv do 
+			(
+				s_normalIDArray = #{}
+				s_Convert #{i} s_normalIDArray
+				msNormals.Reset selection:s_normalIDArray
+			)
+		)
+		enableRefMsgs()
+		
+		--force UI refresh
+		--update sObj	
+		redrawViews() 	
+		max create mode
+		max modify mode
+		
+	)
+
 
 		--UI
 		rollout NormalsAdjust "NormalsAdjust" width:280
@@ -481,6 +539,10 @@ toolTip:"NormalsAdjust"
 					button bt_copy "Copy" width:240 align:#left toolTip:"拷贝引用目标最近顶点的法线到目标"
 					button bt_centerOut "Center Out" width:240 align:#left toolTip:"以引用目标的位置为中心，进行发散，法线方向为 中心-->顶点"
 					button bt_centerIn "Center In" width:240 align:#left toolTip:"以引用目标的位置为中心，进行收缩，法线方向为 顶点-->中心"
+				)
+				group "Reset"
+				(
+					button bt_reset "Reset" width:240 align:#left toolTip:"重置法线"
 				)
 				
 				on refPick picked refmesh do
@@ -609,6 +671,30 @@ toolTip:"NormalsAdjust"
 						if (superclassof obj == geometryclass) then
 						(
 							projectNormalOffset objPick.object inpos "mul" range
+						)
+						else(messageBox "Please set valid geometry objects." title:"Oops !" )
+					)
+					else(messageBox "Please set Target objects." title:"Oops !" )
+				)
+				
+				on bt_reset pressed  do
+				(
+					inpos = [objx.value,objy.value,objz.value]
+					obj = objPick.object 
+					range = "all"
+					if affectmode.state == 1 then
+					(
+						range = "all"
+					)
+					else
+					(
+						range = "selected"
+					)
+					if (obj != undefined)then 
+					(
+						if (superclassof obj == geometryclass) then
+						(
+							projectNormalReset objPick.object range
 						)
 						else(messageBox "Please set valid geometry objects." title:"Oops !" )
 					)
